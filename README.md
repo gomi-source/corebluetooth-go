@@ -11,7 +11,7 @@ splits the work across two processes:
 
 ```
 your Go program  <--Unix socket, JSON-RPC-->  corebluetoothd (Swift helper)  <--CoreBluetooth-->  BLE hardware
-   (ble)                                    (helper/)
+   (ble)                                         (helper/)
 ```
 
 - **`helper/`** - a Swift Package Manager executable, `corebluetoothd`. It
