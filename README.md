@@ -50,6 +50,27 @@ already in the standard library), and JSON-RPC's request/notification
 split maps directly onto "commands" vs. "CoreBluetooth delegate events".
 It's also trivially inspectable with `nc`/`socat` while debugging.
 
+## Installing corebluetoothd
+
+You don't need Xcode to get the compiled helper - two options:
+
+**Homebrew** (builds from source via a personal tap):
+
+```sh
+brew tap gomi-source/corebluetooth-go
+brew install corebluetoothd
+```
+
+**GitHub Release** (prebuilt `corebluetoothd.app`, ad-hoc signed only -
+see "macOS Bluetooth permission" below for what that means on download):
+
+Grab the `corebluetoothd-<version>-macos-arm64.zip` asset from the
+[latest release](https://github.com/gomi-source/corebluetooth-go/releases/latest),
+unzip it, and place `corebluetoothd.app` next to your Go binary (or point
+`ble.Options.HelperPath` at it, or put it on `$PATH`).
+
+Prefer to compile it yourself instead? See "Building" below.
+
 ## Building
 
 Requires macOS with Xcode/Swift toolchain installed (the helper links
@@ -103,23 +124,36 @@ cleans up the socket file.
 ## macOS Bluetooth permission
 
 Since macOS 11, using CoreBluetooth requires the user to grant Bluetooth
-access under **System Settings > Privacy & Security > Bluetooth**. For a
-plain command-line binary (no `.app` bundle / `Info.plist`), macOS
-attributes that permission to whichever process actually invoked
-`corebluetoothd` - in practice, your Go binary (or the terminal, if you're
-running `go run`). The first scan will trigger the permission prompt; if
-it doesn't, or scanning silently returns nothing, check that entry in
-Privacy & Security manually.
+access under **System Settings > Privacy & Security > Bluetooth**. This
+matters more here than it sounds: a bare, un-bundled Mach-O binary that
+touches `CBCentralManager` doesn't get a permission *prompt* at all - TCC
+silently **SIGKILLs it** the instant it tries (exit 137). Because of that,
+`corebluetoothd` is never run as a loose binary. `make helper` (and the
+Homebrew formula, and the GitHub Release asset) all produce a proper
+`corebluetoothd.app` bundle with a real `Info.plist` (see `helper/Info.plist`
+- it sets `NSBluetoothAlwaysUsageDescription` and
+`NSBluetoothPeripheralUsageDescription`, and marks the helper `LSUIElement`
+since it has no UI). With that bundle identity in place, the first scan
+triggers a normal permission prompt, and the grant shows up in Privacy &
+Security under the bundle's own name (`corebluetoothd`), not attributed to
+your Go binary or terminal.
 
-Ad-hoc codesigning the helper (which `make helper` does via `codesign
---sign -`) gives it a stable identity across rebuilds, which keeps macOS
-from treating every rebuilt binary as a "new" app requiring re-approval.
-If you ship this to other machines, sign it with a real Developer ID
-instead. If you hit persistent permission issues, wrapping `corebluetoothd`
-in a minimal `.app` bundle with an `Info.plist` that sets
-`NSBluetoothAlwaysUsageDescription` gives you the most reliable/standard
-permission-prompt behavior - not done here to keep the helper a plain
-single binary, but worth doing if this moves beyond development use.
+Ad-hoc codesigning the bundle (which `make helper` does via `codesign
+--sign -`, and what the Homebrew formula does too when building from
+source) gives it a stable identity across rebuilds *on the machine that
+built it*, which keeps macOS from treating every rebuild as a "new" app
+requiring re-approval. It does **not** survive being downloaded on another
+machine: the release zip is ad-hoc signed only (no Apple Developer ID yet),
+so macOS quarantines it on download and Gatekeeper will refuse to open it
+via double-click. Either right-click -> Open once, or run:
+
+```sh
+xattr -dr com.apple.quarantine corebluetoothd.app
+```
+
+Building locally (`make helper`) or installing via the Homebrew tap don't
+hit this, since neither goes through a browser/curl download - the app is
+built fresh on your own machine each time.
 
 ## Scope / what's not here
 
