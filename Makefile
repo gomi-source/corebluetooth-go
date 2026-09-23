@@ -13,7 +13,7 @@ all: helper go-build
 ## un-bundled Mach-O binary gets silently SIGKILLed the moment it touches
 ## CBCentralManager instead of just being denied - see README.md.
 helper:
-	cd $(HELPER_DIR) && swift build -c release
+	cd $(HELPER_DIR) && swift build -c release --disable-sandbox
 	rm -rf $(APP_BUNDLE)
 	mkdir -p $(APP_BUNDLE)/Contents/MacOS
 	cp $(HELPER_DIR)/Info.plist $(APP_BUNDLE)/Contents/Info.plist
