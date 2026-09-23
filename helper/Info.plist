@@ -5,7 +5,7 @@
 	<key>CFBundleExecutable</key>
 	<string>corebluetoothd</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.redpill-linpro.corebluetoothd</string>
+	<string>se.gomi.corebluetoothd</string>
 	<key>CFBundleName</key>
 	<string>corebluetoothd</string>
 	<key>CFBundlePackageType</key>
