@@ -137,8 +137,18 @@ func waitForReady(stdout io.ReadCloser, timeout time.Duration) error {
 				for scanner.Scan() {
 					// drain
 				}
+				// Nothing left to report to: Start has already returned
+				// successfully by the time we get here, and this
+				// goroutine's only remaining job was to keep draining
+				// stdout so the helper never blocks on a full pipe. A
+				// non-nil scanner.Err() here just means that stopped
+				// (helper exited, pipe closed), which is expected.
 				return
 			}
+		}
+		if err := scanner.Err(); err != nil {
+			ready <- fmt.Errorf("corebluetoothd: reading helper stdout: %w", err)
+			return
 		}
 		ready <- fmt.Errorf("corebluetoothd: helper exited before signaling ready")
 	}()
